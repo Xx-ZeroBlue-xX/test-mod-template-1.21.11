@@ -1,0 +1,37 @@
+{
+	"schemaVersion": 1,
+	"id": "test-mod",
+	"version": "${version}",
+	"name": "Test Mod",
+	"description": "Feesh!",
+	"authors": [
+		"Me!"
+	],
+	"contact": {
+		"homepage": "https://zeroblue.net",
+		"sources": "https://github.com/FabricMC/fabric-example-mod"
+	},
+	"license": "MIT",
+	"icon": "assets/test-mod/icon.png",
+	"environment": "*",
+	"entrypoints": {
+		"main": [
+			"net.zeroblue.testmod.TestMod"
+		],
+		"fabric-datagen": [
+			"net.zeroblue.testmod.TestModDataGenerator"
+		],
+		"client": [
+			"net.zeroblue.testmod.TestModClient"
+		]
+	},
+	"mixins": [
+		"test-mod.mixins.json"
+	],
+	"depends": {
+		"fabricloader": ">=0.18.4",
+		"minecraft": "~1.21.11",
+		"java": ">=21",
+		"fabric-api": "*"
+	}
+}
