@@ -23,7 +23,7 @@ public class FishingConfigScreen extends Screen {
                 ModConfig.INSTANCE.enabled = !ModConfig.INSTANCE.enabled;
                 button.setMessage(Text.literal("Enabled: " + ModConfig.INSTANCE.enabled));
             })
-            .dimensions(centerX - 100, centerY - 60, 200, 20)
+            .dimensions(centerX - 100, centerY - 70, 200, 20)
             .build());
 
         // Weapon Slot
@@ -33,17 +33,14 @@ public class FishingConfigScreen extends Screen {
                 ModConfig.INSTANCE.weaponSlot = (ModConfig.INSTANCE.weaponSlot + 1) % 9;
                 button.setMessage(Text.literal("Weapon Slot: " + (ModConfig.INSTANCE.weaponSlot + 1)));
             })
-            .dimensions(centerX - 100, centerY - 35, 200, 20)
+            .dimensions(centerX - 100, centerY - 45, 200, 20)
             .build());
 
-        // Click Count
+        // Mob Settings Sub-menu
         this.addDrawableChild(ButtonWidget.builder(
-            Text.literal("Clicks: " + ModConfig.INSTANCE.clickCount),
-            button -> {
-                ModConfig.INSTANCE.clickCount = (ModConfig.INSTANCE.clickCount % 10) + 1;
-                button.setMessage(Text.literal("Clicks: " + ModConfig.INSTANCE.clickCount));
-            })
-            .dimensions(centerX - 100, centerY - 10, 200, 20)
+            Text.literal("Mob Specific Settings..."),
+            button -> this.client.setScreen(new MobSettingsScreen(this)))
+            .dimensions(centerX - 100, centerY - 20, 200, 20)
             .build());
 
         // Anti-AFK
@@ -53,12 +50,12 @@ public class FishingConfigScreen extends Screen {
                 ModConfig.INSTANCE.antiAfk = !ModConfig.INSTANCE.antiAfk;
                 button.setMessage(Text.literal("Anti-AFK: " + ModConfig.INSTANCE.antiAfk));
             })
-            .dimensions(centerX - 100, centerY + 15, 200, 20)
+            .dimensions(centerX - 100, centerY + 5, 200, 20)
             .build());
 
         // Close
         this.addDrawableChild(ButtonWidget.builder(Text.literal("Done"), button -> this.close())
-            .dimensions(centerX - 100, centerY + 50, 200, 20)
+            .dimensions(centerX - 100, centerY + 45, 200, 20)
             .build());
     }
 

@@ -1,10 +1,14 @@
 package net.zeroblue.testmod.logic;
 
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
+import net.fabricmc.fabric.api.client.message.v1.ClientReceiveMessageEvents;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.entity.projectile.FishingBobberEntity;
+import net.minecraft.text.Text;
 import net.minecraft.util.Hand;
 import net.zeroblue.testmod.config.ModConfig;
+
+import java.util.Random;
 
 public class FishingController {
     public enum State {
@@ -15,13 +19,32 @@ public class FishingController {
     private static int timer = 0;
     private static int attackClicksLeft = 0;
     private static int originalSlot = 0;
+    private static final Random random = new Random();
 
     private static float initialYaw = 0;
     private static float initialPitch = 0;
     private static int afkTimer = 0;
+    private static int failSafeTimer = 0;
 
     public static void init() {
         ClientTickEvents.END_CLIENT_TICK.register(FishingController::onTick);
+        ClientReceiveMessageEvents.GAME.register((message, overlay) -> handleChatMessage(message));
+    }
+
+    private static void handleChatMessage(Text message) {
+        if (!ModConfig.INSTANCE.enabled) return;
+        String text = message.getString();
+        
+        for (ModConfig.MobSetting mob : ModConfig.INSTANCE.mobSettings) {
+            if (text.contains(mob.message)) {
+                attackClicksLeft = mob.clicks;
+                // If we catch a mob, we definitely want to transition to attacking
+                if (currentState == State.FISHING || currentState == State.REELING) {
+                    currentState = State.REELING;
+                }
+                return;
+            }
+        }
     }
 
     private static void onTick(MinecraftClient client) {
@@ -45,16 +68,22 @@ public class FishingController {
             }
             case FISHING -> {
                 FishingBobberEntity bobber = client.player.fishHook;
-                if (bobber != null) {
-                    // We'll use a mixin later to set a flag, or check velocity here
-                    // For now, let's assume a Mixin will call a method to trigger reeling
+                if (bobber == null) {
+                    failSafeTimer++;
+                    if (failSafeTimer > 100) { // 5 seconds of no bobber
+                        currentState = State.RECASTING;
+                        timer = getRandomDelay(10, 20);
+                        failSafeTimer = 0;
+                    }
+                } else {
+                    failSafeTimer = 0;
                 }
             }
             case REELING -> {
                 client.interactionManager.interactItem(client.player, Hand.MAIN_HAND);
                 currentState = State.ATTACKING;
-                timer = 10; // Wait 10 ticks for mob to spawn/be catchable
-                attackClicksLeft = ModConfig.INSTANCE.clickCount;
+                timer = getRandomDelay(15, 25); // Wait for mob to spawn
+                if (attackClicksLeft == 0) attackClicksLeft = ModConfig.INSTANCE.defaultClickCount;
                 originalSlot = client.player.getInventory().selectedSlot;
             }
             case ATTACKING -> {
@@ -67,11 +96,11 @@ public class FishingController {
                     client.player.getInventory().selectedSlot = ModConfig.INSTANCE.weaponSlot;
                     client.interactionManager.interactItem(client.player, Hand.MAIN_HAND);
                     attackClicksLeft--;
-                    timer = ModConfig.INSTANCE.clickDelay;
+                    timer = getRandomDelay(ModConfig.INSTANCE.clickDelayMin, ModConfig.INSTANCE.clickDelayMax);
                 } else {
                     client.player.getInventory().selectedSlot = originalSlot;
                     currentState = State.RECASTING;
-                    timer = 10;
+                    timer = getRandomDelay(15, 30);
                 }
             }
             case RECASTING -> {
@@ -85,16 +114,20 @@ public class FishingController {
         }
     }
 
+    private static int getRandomDelay(int min, int max) {
+        if (min >= max) return min;
+        return min + random.nextInt(max - min + 1);
+    }
+
     private static void handleAntiAfk(MinecraftClient client) {
         if (!ModConfig.INSTANCE.antiAfk) return;
 
         afkTimer++;
-        if (afkTimer > 40) { // Every 2 seconds
+        if (afkTimer > 40 + random.nextInt(40)) { // 2-4 seconds
             float range = ModConfig.INSTANCE.antiAfkRange;
-            float dx = (float) (Math.random() * range * 2 - range);
-            float dy = (float) (Math.random() * range * 2 - range);
+            float dx = (random.nextFloat() * range * 2 - range);
+            float dy = (random.nextFloat() * range * 2 - range);
             
-            // Keep it around the initial look position
             client.player.setYaw(initialYaw + dx);
             client.player.setPitch(initialPitch + dy);
             afkTimer = 0;
